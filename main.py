@@ -1,61 +1,67 @@
-import json
-import requests
-from bs4 import BeautifulSoup
-from recipe_scrapers import scrape_me
+"""
+
+Driver program for scraping data and loading to database.
+
+Can use this to rerun specific steps of the data load process
+
+"""
+
+import argparse
+import logging
+from data_collection.scrape import collect_recipe_data
+from data_collection.store_data import load_files_to_db
+from datetime import datetime
+
+def init_logger():
+    current_ts = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    logfile = f'logs/{current_ts}.txt'
+
+    logging.basicConfig(
+        filename=logfile,
+        filemode='a',
+        format='[%(asctime)s %(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO
+    )
+
+    return logging.getLogger('cookit-scraper')
 
 
-CATEGORY_PAGE_URL = 'https://www.allrecipes.com/recipes-a-z-6735880'
-CATEGORY_LINK_CLASS = 'link-list__link'
-RECIPE_LINK_CLASS = 'comp mntl-card-list-items mntl-document-card mntl-card card card--no-image'
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-c', 
+        '--skip_collect', 
+        action='store_true', 
+        required=False, 
+        help='specify this flag to skip the data collection step',
+    )
 
-def scrape_recipe(url: str) -> dict:
-    scraper = scrape_me(url)
-    
-    recipe_data = {
-        'host': scraper.host(),
-        'title': scraper.title(),
-        'total_time': scraper.total_time(),
-        'image': scraper.image(),
-        'ingredients': scraper.ingredients(),
-        'instructions': scraper.instructions(),
-        'instructions_list': scraper.instructions_list(),
-        'yields': scraper.yields(),
-        'nutrients': scraper.nutrients(),
-        'cuisine': scraper.cuisine(),
-        'category': scraper.category(),
-        'prep_time': scraper.prep_time(),
-        'cook_time': scraper.cook_time(),
-    }
+    parser.add_argument(
+        '-l', 
+        '--skip_load', 
+        action='store_true', 
+        required=False, 
+        help='specify this flag to skip the database load step',
+    )
 
-    return recipe_data
-
-# TODO: this will write to database, for now just saving to files
-def save_recipe_data(recipe_data: dict):
-    file_name = recipe_data['title'].lower().replace(' ', '_') + '.json'
-    
-    with open(f'data/{file_name}', 'w') as f:
-        json.dump(recipe_data, f)
-
-def make_soup(url: str) -> BeautifulSoup:
-    res = requests.get(url)
-    return BeautifulSoup(res.text)
+    return parser.parse_args()
 
 def main():
-    soup = make_soup(CATEGORY_PAGE_URL)
-    category_links = soup.find_all('a', class_=CATEGORY_LINK_CLASS)
+    logger = init_logger()
+    args = parse_arguments()
+    
+    skip_collect = args.skip_collect
+    skip_load = args.skip_load
 
-    # initial page is categories, each category has links to actual recipes
-    # scrape each category link for links to recipes
-    for cl in category_links:
-        category_soup = make_soup(cl['href'])
-        recipe_links = category_soup.find_all('a', class_=RECIPE_LINK_CLASS)
-
-        # for each recipe, use recipe_scrapers to get the recipe data and store in database
-        for rl in recipe_links:
-            recipe_data = scrape_recipe(rl['href'])
-            save_recipe_data(recipe_data)
-
+    if not skip_collect:
+        logger.info('starting web scraping')
+        collect_recipe_data()
+        logger.info('finished collecting recipe data')
+    if not skip_load():
+        logger.info('starting database load')
+        load_files_to_db()
+        logger.info('finished loading files to database')
 
 if __name__ == '__main__':
     main()
-
