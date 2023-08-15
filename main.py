@@ -58,7 +58,7 @@ def main():
         logger.info('starting web scraping')
         collect_recipe_data()
         logger.info('finished collecting recipe data')
-    if not skip_load():
+    if not skip_load:
         logger.info('starting database load')
         load_files_to_db()
         logger.info('finished loading files to database')

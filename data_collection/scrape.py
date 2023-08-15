@@ -63,8 +63,6 @@ def scrape_recipe(url: str) -> dict:
     except Exception:
         logger.warn(f'field "cook_time" is missing from recipe {url}')
         cook_time = None
-
-    
     
     recipe_data = {
         'title': scraper.title(),
