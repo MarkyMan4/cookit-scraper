@@ -9,7 +9,7 @@ Can use this to rerun specific steps of the data load process
 import argparse
 import logging
 from data_collection.scrape import collect_recipe_data
-from data_collection.store_data import load_files_to_db
+from data_collection.load_data import load_files_to_db
 from datetime import datetime
 
 def init_logger():

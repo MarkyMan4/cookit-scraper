@@ -162,3 +162,5 @@ cython_debug/
 # ignore intermediate JSON files in the data folder
 data/*.json
 logs/*.txt
+
+secrets.json
